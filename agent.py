@@ -18,6 +18,8 @@ Usage (once implemented):
     print(result["error"])   # None on success
 """
 
+import re
+
 from tools import search_listings, suggest_outfit, create_fit_card
 
 
@@ -92,9 +94,59 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     Before writing code, complete the Planning Loop and State Management sections
     of planning.md — your implementation should match what you described there.
     """
-    # TODO: implement the planning loop
+    # Step 1: initialize session
     session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
+
+    # Step 2: parse the query with regex
+    # Extract max_price: "under $30", "$30", "under 30"
+    price_match = re.search(r'\$?\s*(\d+(?:\.\d+)?)', query)
+    max_price = float(price_match.group(1)) if price_match else None
+
+    # Extract size: "size M", "size 8", "size W30"
+    size_match = re.search(r'\bsize\s+(\S+)', query, re.IGNORECASE)
+    size = size_match.group(1) if size_match else None
+
+    # Description: query with price and size mentions stripped out
+    description = re.sub(r'(under\s+)?\$?\s*\d+(?:\.\d+)?', '', query)
+    description = re.sub(r'\bsize\s+\S+', '', description, flags=re.IGNORECASE)
+    description = ' '.join(description.split())
+
+    session["parsed"] = {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    }
+
+    # Step 3: search listings, early-exit if nothing matches
+    session["search_results"] = search_listings(
+        description=description,
+        size=size,
+        max_price=max_price,
+    )
+
+    if not session["search_results"]:
+        session["error"] = (
+            "I couldn't find any listings matching those filters. "
+            "Try a broader style description, a higher budget, or leave the size open."
+        )
+        return session
+
+    # Step 4: pick the top result
+    session["selected_item"] = session["search_results"][0]
+
+    # Step 5: suggest an outfit
+    session["outfit_suggestion"] = suggest_outfit(
+        new_item=session["selected_item"],
+        wardrobe=session["wardrobe"],
+    )
+
+    # Step 6: create the fit card
+    session["fit_card"] = create_fit_card(
+        outfit=session["outfit_suggestion"],
+        new_item=session["selected_item"],
+    )
+
+    # Step 7: return completed session
     return session
 
 
