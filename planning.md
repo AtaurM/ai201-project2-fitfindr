@@ -137,6 +137,9 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 Write out what a full user interaction looks like from start to finish — tool call by tool call. Use a specific example query.
 
+**What FitFindr does:**
+FitFindr is a personal thrifting assistant that takes a request (style preferences, size, budget) and uses `search_listings` to find matching secondhand items from the local dataset, then calls `suggest_outfit` to pair a chosen result with the user's existing wardrobe, and finally calls `create_fit_card` to produce a shareable outfit summary. If `search_listings` does not return a match, the agent tells the user and may widen the filters rather than proceeding to outfit suggestion. If the wardrobe is empty, `suggest_outfit` skips pairing and `create_fit_card` is called with the new item alone.
+
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
 
 **Step 1:**
